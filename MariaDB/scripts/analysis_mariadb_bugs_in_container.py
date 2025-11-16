@@ -1,0 +1,154 @@
+import os
+import sys
+import collections.abc
+
+bug_pattern_list = [
+    "Item_subselect::init",
+    ["str2my_decimal", "compare_e_int()", "Item_func_equal::val_bool()"],
+    ["Arg_comparator::compare_int_unsigned_signed", "sql/field.h:1461(Field::set_notnull"],
+    ["JOIN::make_aggr_tables_info", "optimize_inner"],
+    "builtin_select.first_inner_unit() == __null",
+    "Assertion `0'",
+    "Assertion `!(thd->lex)->if_exists()'",
+]
+
+
+# local_user_name = os.getlogin()
+local_user_name = "sly"
+
+interesting_files_idx = 0
+
+def is_bug_match(cur_str: str):
+    global bug_pattern_list
+
+    for cur_bug_pattern in bug_pattern_list:
+        if isinstance(cur_bug_pattern, str):
+            cur_bug_pattern = [cur_bug_pattern]
+        for cur_pattern in cur_bug_pattern:
+            if cur_pattern in cur_str:
+                return cur_bug_pattern[0]
+
+    return None
+
+
+def get_bug_triggering_query_line(cur_str: str) -> str:
+    prev_line = ""
+    for cur_line in cur_str.splitlines():
+        if len(cur_line) == 0:
+            if prev_line == "":
+                print(
+                    "ERROR!!!! get_bug_triggering_query_line is not working properly. ")
+                exit(1)
+            return prev_line
+        prev_line = cur_line
+
+def copy_bug_folder_helper(bug_folder_idx: int):
+
+    if os.path.exists(f"./bug_data_tmp"):
+        os.system(f"sudo rm -rf ./bug_data_tmp")
+
+    dest_container_name = f"mariadb_testing_{bug_folder_idx}"
+    # print(f"Copying bug data from container {dest_container_name}")
+    os.system(f"sudo docker cp {dest_container_name}:/home/mariadb/fuzzing/Bug_Analysis/detected_bugs ./bug_data_tmp")
+    # print(f"Changing owner of bug data from container {dest_container_name} to user {local_user_name}. ")
+    os.system(f"sudo chown -R {local_user_name}:{local_user_name} ./bug_data_tmp")
+    if not os.path.exists("./bug_data_tmp"):
+        # print(f"Error: Cannot find bug data in container {dest_container_name}")
+        return
+    return
+
+def is_excluded_non_bug_queries(cur_str: str) -> bool:
+    if "mariadbd got signal" not in cur_str and "Assertion" not in cur_str:
+        return True
+    else:
+        return False
+
+def backup_interesting_files(cur_file: str, is_known_bug: bool):
+    global interesting_files_idx
+
+    target_name = f"interesting_file_{interesting_files_idx}"
+    if is_known_bug:
+        target_name = f"known_bug_file_{interesting_files_idx}"
+
+    # print(f"Backing up interesting file {target_name}")
+    if not os.path.exists("../interesting_files_dir"):
+        os.system(f"mkdir -p ../interesting_files_dir")
+
+    os.system(f"cp -r ./{cur_file} ../interesting_files_dir/{target_name}")
+    interesting_files_idx += 1
+
+    return target_name
+
+class BugStruct:
+    file_name: str
+    detect_time: int
+
+    def __init__(self, file_name, detect_time):
+        self.file_name = file_name
+        self.detect_time = detect_time
+
+    def __str__(self):
+        return f"File: {self.file_name} Detection Time: {self.detect_time}"
+
+    def __repr__(self):
+        return f"File: {self.file_name} Detection Time: {self.detect_time}"
+
+
+detected_bug_dict = dict()
+
+bug_num = 0
+
+start_time = 0
+
+start_core = 0
+num_cores = 100
+
+with open("./start_time", "r") as fd:
+    start_time = int(fd.read())
+
+for cur_file in os.listdir("./"):
+    if not os.path.isfile(cur_file) or "start_time" in cur_file or ".py" in cur_file:
+        continue
+    # print(f"Analyzing file {cur_file}")
+    with open(cur_file, "r", errors="ignore") as cur_file_fd:
+
+        cur_file_str = cur_file_fd.read()
+        # bug_triggering_query_str = get_bug_triggering_query_line(cur_str=cur_file_str)
+        bug_triggering_query_str = cur_file_str
+
+        if (is_excluded_non_bug_queries(bug_triggering_query_str)):
+            continue
+        
+        # print(f"Getting {bug_triggering_query_str}")
+        match_pattern = is_bug_match(bug_triggering_query_str)
+
+        if match_pattern is None:
+            backup_file_name = backup_interesting_files(cur_file, is_known_bug=False)
+            print(f"For file: {backup_file_name}, no match. \n")
+            output_log.write(f"For file: {backup_file_name}, no match. \n")
+        else:
+            bug_found_time = os.stat(cur_file).st_ctime
+
+#            print("bug_found_time")
+#            print(bug_found_time)
+#            print("start_time")
+#            print(start_time)
+
+            bug_found_time = (bug_found_time - start_time) / 3600.0
+            if match_pattern not in detected_bug_dict:
+                bug_num += 1
+                backup_file_name = backup_interesting_files(cur_file, is_known_bug=True)
+                # print(f"For file: {backup_file_name}, match. \n")
+                detected_bug_dict[match_pattern] = BugStruct(
+                    file_name=backup_file_name, detect_time=bug_found_time)
+
+            else:
+                if detected_bug_dict[match_pattern].detect_time > bug_found_time:
+                    detected_bug_dict[match_pattern] = BugStruct(
+                        file_name=backup_file_name, detect_time=bug_found_time)
+
+print(f"\n\n\nTotal bug number: {bug_num}\n")
+
+for cur_bug_pattern in detected_bug_dict.items():
+    print(f"Getting bug pattern {cur_bug_pattern}\n")
+

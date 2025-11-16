@@ -1,0 +1,101 @@
+FROM ubuntu:20.04 AS parserfuzz_postgresql_tools
+MAINTAINER "XXX-Security-Universe"
+
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN chmod 777 /tmp
+
+RUN apt -y update
+RUN apt -y upgrade
+RUN apt -y install bison flex  git  make  cmake  build-essential  clang xinetd  libreadline-dev  zlib1g-dev  gdb  vim  tmux  python3 python3-pip libxml2-dev  libxslt-dev  libssl-dev  libxml2-utils  xsltproc libpq-dev screen watch unzip wget llvm clang g++-9 gcc-9 libicu-dev pkg-config
+
+RUN useradd -ms /bin/bash postgresql
+
+USER postgresql
+RUN pip3 install libtmux psutil
+
+# Build AFL. 
+WORKDIR /home/postgresql
+RUN git clone https://github.com/google/AFL.git
+
+WORKDIR /home/postgresql/AFL
+RUN sed -i  's/#define MAP_SIZE_POW2       16/#define MAP_SIZE_POW2       18/' config.h
+RUN AFL_NO_X86=1 make
+WORKDIR /home/postgresql/AFL/llvm_mode
+# ENV LLVM_CONFIG=llvm-config-6.0
+RUN make
+
+## ---------------------------------------------------------------------------------------------------------------
+FROM parserfuzz_postgresql_tools AS parserfuzz_postgresql_source_build
+
+# Build postgresql REL_14_0
+
+WORKDIR /home/postgresql
+RUN git clone https://github.com/postgres/postgres.git
+# RUN cp -r /home/postgres/postgres/ /home/postgres/postgres_ori/
+
+WORKDIR /home/postgresql/postgres/ 
+RUN git checkout REL_17_4
+# This is for fixing one compilation failure from using old version of GLIC.
+RUN sed -i "s/echo 'libpq must not be calling any function which invokes exit'; exit 1;/echo 'libpq must not be calling any function which invokes exit'; exit 0;/" src/interfaces/libpq/Makefile
+RUN mkdir /home/postgresql/postgres/bld
+
+USER postgresql
+WORKDIR /home/postgresql/postgres/bld
+ENV CXX=/home/postgresql/AFL/afl-clang-fast++
+ENV CC=/home/postgresql/AFL/afl-clang-fast
+RUN ../configure --enable-debug --prefix=$(pwd) --exec-prefix=$(pwd) --enable-cassert && make -j$(nproc) && make install
+
+# WORKDIR /home/postgresql/postgres_ori/
+# RUN git checkout REL_14_0
+# RUN mkdir -p /home/postgresql/postgres_ori/bld
+
+# WORKDIR /home/postgresql/postgres_ori/bld
+# ENV CXX=g++-9
+# ENV CC=gcc-9
+# RUN ../configure --enable-debug --prefix=$(pwd) --exec-prefix=$(pwd) && make -j$(nproc) && make install
+
+ENV CXX=g++-9
+ENV CC=gcc-9
+
+
+# ---------------------------------------------------------------------------------------------------------------
+FROM parserfuzz_postgresql_source_build AS parserfuzz_postgresql_main_fuzzer_build 
+
+USER root
+COPY rsg_cpp /home/postgresql/rsg_cpp
+RUN chown -R postgresql:postgresql /home/postgresql/rsg_cpp
+
+USER postgresql
+WORKDIR /home/postgresql/rsg_cpp
+RUN cp /home/postgresql/postgres/src/backend/parser/gram.y /home/postgresql/rsg_cpp/scripts/assets/postgresql_grammar.y
+RUN make clean && make postgresql -j $(nproc)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+FROM parserfuzz_postgresql_main_fuzzer_build AS postgresql_config_setup 
+USER root
+COPY scripts /home/postgresql/scripts
+RUN chown -R postgresql:postgresql /home/postgresql/scripts && chown -R postgresql:postgresql /tmp && chown -R postgresql:postgresql /var
+
+USER postgresql
+WORKDIR /home/postgresql/scripts
+RUN bash setup_postgresql_database.sh
+
+# ---------------------------------------------------------------------------------------------------------------
+FROM postgresql_config_setup AS postgresql_fuzzing_env_setup
+USER root
+RUN mkdir -p /home/postgresql/fuzzing && mkdir -p /home/postgresql/fuzzing/Bug_Analysis
+COPY fuzz_root /home/postgresql/fuzzing/fuzz_root
+RUN chown -R postgresql:postgresql /home/postgresql/fuzzing
+
+USER postgresql
+WORKDIR /home/postgresql/fuzzing/fuzz_root
+RUN cp /home/postgresql/rsg_cpp/parserfuzz ./ && cp /home/postgresql/rsg_cpp/scripts/assets/postgresql_gram_modi.y ./ && cp /home/postgresql/rsg_cpp/scripts/assets/ir_types_mapping.txt ./
+
+# USER root
+# RUN echo "[mysqld]\nsql_mode = \"NO_ENGINE_SUBSTITUTION\"\nmax_allowed_packet=16M\n" > /etc/mysql/conf.d/mysql.cnf
+
+USER root
+WORKDIR /home/postgresql/fuzzing/fuzz_root

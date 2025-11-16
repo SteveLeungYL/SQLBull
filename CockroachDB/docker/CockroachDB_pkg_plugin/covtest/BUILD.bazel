@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "covtest",
+    srcs = [
+        "main_test.go",
+        "cov_unit_test.go"
+    ],
+    args = select({
+        "//conditions:default": ["-test.timeout=3000000s"],
+    }),
+    deps = [
+        "//pkg/keys",
+        "//pkg/base",
+        "//pkg/testutils/serverutils",
+        "//pkg/testutils/sqlutils",
+        "//pkg/security/securityassets",
+        "//pkg/security/securitytest",
+        "//pkg/server",
+        "//pkg/testutils/testcluster",
+        "//pkg/util/randutil"
+    ],
+)

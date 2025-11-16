@@ -1,0 +1,93 @@
+FROM ubuntu:20.04 AS parserfuzz_mysql_tools_no_fuzzer
+MAINTAINER "XXX-Security-Universe"
+
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN chmod 777 /tmp
+
+RUN apt -y update && apt -y install bison build-essential cmake flex gdb git libncurses5-dev libreadline-dev libssl-dev make pkg-config python3 python3-pip tmux vim xinetd zlib1g-dev  screen watch unzip wget libtirpc-dev htop libpthread-stubs0-dev
+
+# Install mysql-client related libraries, for the compilation of sqlright.
+RUN pip install libtmux # --break-system-packages
+RUN pip3 install psutil # --break-system-packages
+RUN pip3 install mysql-connector-python mysql-connector-python # --break-system-packages
+RUN apt -y install libmysqlclient-dev
+RUN pip3 install mysqlclient # --break-system-packages
+
+RUN apt -y install g++
+RUN apt -y install gcc
+RUN apt -y install llvm
+RUN apt -y install clang
+
+RUN apt -y install libnuma-dev
+RUN apt -y install pkg-config
+
+RUN useradd -ms /bin/bash mysql
+RUN chown -R mysql:mysql /home/mysql/
+
+## ---------------------------------------------------------------------------------------------------------------
+FROM parserfuzz_mysql_tools_no_fuzzer AS parserfuzz_mysql_source_build_no_fuzzer
+
+# build MySQL 8.0.40
+USER mysql
+WORKDIR /home/mysql/
+RUN wget https://github.com/mysql/mysql-server/archive/refs/tags/mysql-8.0.40.tar.gz
+RUN tar -xf mysql-8.0.40.tar.gz
+RUN cp -r mysql-server-mysql-8.0.40 mysql-server-8.0.40
+WORKDIR /home/mysql/mysql-server-8.0.40
+RUN mkdir bld
+WORKDIR /home/mysql/mysql-server-8.0.40/bld
+RUN cmake .. -DDOWNLOAD_BOOST=1 -DWITH_BOOST=../boost -DWITH_UNIT_TESTS=OFF
+RUN make -j$(nproc)
+
+WORKDIR /home/mysql/
+RUN mv mysql-server-mysql-8.0.40 mysql-server-8.0.40-with-debug
+WORKDIR /home/mysql/mysql-server-8.0.40-with-debug
+RUN mkdir bld
+WORKDIR /home/mysql/mysql-server-8.0.40-with-debug/bld
+RUN cmake .. -DDOWNLOAD_BOOST=1 -DWITH_BOOST=../boost -DWITH_UNIT_TESTS=OFF -DWITH_DEBUG=1 -DWITH_ASAN=1 -DCPACK_MONOLITHIC_INSTALL=1
+RUN make -j$(nproc)
+
+# # build MySQL 9.1.0
+# USER mysql
+# WORKDIR /home/mysql/
+# RUN wget https://github.com/mysql/mysql-server/archive/refs/tags/mysql-9.1.0.tar.gz
+# RUN tar -xf mysql-9.1.0.tar.gz
+# RUN mv mysql-server-mysql-9.1.0 mysql-server-9.1.0
+# WORKDIR /home/mysql/mysql-server-9.1.0
+# RUN mkdir bld
+# WORKDIR /home/mysql/mysql-server-9.1.0/bld
+# RUN cmake .. -DDOWNLOAD_BOOST=1 -DWITH_BOOST=../boost -DWITH_UNIT_TESTS=OFF
+# RUN make -j$(nproc)
+
+# ---------------------------------------------------------------------------------------------------------------
+FROM parserfuzz_mysql_source_build_no_fuzzer AS mysql_config_setup_no_fuzzer
+USER root
+COPY scripts /home/mysql/scripts
+RUN chown -R mysql:mysql /home/mysql/scripts
+
+USER mysql
+WORKDIR /home/mysql/mysql-server-8.0.40/bld/
+RUN mkdir data
+RUN bin/mysqld --initialize-insecure --user=mysql --datadir=data
+RUN bin/mysql_ssl_rsa_setup --datadir=data # Only available in MySQL 8.0.*. Delete this line for MySQL 9.0.*.
+RUN mkdir data_all
+RUN mv data data_all/ori_data
+
+
+# USER mysql
+# WORKDIR /home/mysql/mysql-server-9.1.0/bld/
+# RUN mkdir data
+# RUN bin/mysqld --initialize-insecure --user=mysql --datadir=data
+# # RUN bin/mysql_ssl_rsa_setup --datadir=data # Only available in MySQL 8.0.*. Delete this line for MySQL 9.0.*.
+# RUN mkdir data_all
+# RUN mv data data_all/ori_data
+
+# ---------------------------------------------------------------------------------------------------------------
+FROM mysql_config_setup_no_fuzzer AS fuzzing_env_setup_no_fuzzer
+
+USER root
+RUN echo "[mysqld]\nsql_mode = \"NO_ENGINE_SUBSTITUTION\"\nmax_allowed_packet=16M\n" > /etc/mysql/conf.d/mysql.cnf
+
+WORKDIR /home/mysql/fuzzing/fuzz_root

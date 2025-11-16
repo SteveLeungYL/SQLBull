@@ -1,0 +1,723 @@
+[
+
+  {
+    "enabled": true,
+    "var_name": "Calendar",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "Gregorian"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "TimeZone",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "US"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "access_mode",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "AUTOMATIC",
+          "READ_ONLY",
+          "READ_WRITE"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allocator_background_threads",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allocator_bulk_deallocation_flush_threshold",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "512 MiB",
+          "10 MiB",
+          "1024 MiB"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allocator_flush_threshold",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "512 MiB",
+          "10 MiB",
+          "1024 MiB"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allow_community_extensions",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allow_extensions_metadata_mismatch",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allow_persistent_secrets",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allow_unredacted_secrets",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "allow_unsigned_extensions",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "arrow_large_buffer_size",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "arrow_lossless_conversion",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "arrow_output_list_view",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "autoinstall_extension_repository",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "autoinstall_known_extensions",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "autoload_known_extensions",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "binary_as_string",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "ca_cert_file",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "catalog_error_max_schemas",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 500,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "checkpoint_threshold",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "16.0 MiB",
+          "32.0 MiB",
+          "1.0 MiB"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "custom_extension_repository",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "custom_user_agent",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "default_block_size",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 262145,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "default_collation",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "NOCASE",
+          "NOACCENT",
+          "NFC"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "default_null_order",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "NULLS_FIST",
+          "NULLS_LAST"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "default_order",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "ASC",
+          "DESC"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "default_secret_storage",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "local_file"
+        ]
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "disabled_filesystems",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "duckdb_api",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_external_access",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_fsst_vectors",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_http_metadata_cache",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_macro_dependencies",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_object_cache",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_server_cert_verification",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "enable_view_dependencies",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "extension_directory",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "./abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "external_threads",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "0",
+          "1",
+          "10"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "force_download",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_keep_alive",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_proxy_password",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_proxy_username",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "sly"
+        ]
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "http_proxy",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "sly"
+        ]
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "http_retries",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 100,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_retry_backoff",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 100,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_retry_wait_ms",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 10000,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "http_timeout",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 10000,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "immediate_transaction_mode",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "index_scan_max_count",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 10240,
+            "min": 0
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "index_scan_percentage",
+    "params": 
+      {
+        "type": "AFFIFLOAT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 1.0,
+            "min": 0.001
+        }
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "lock_configuration",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "max_memory",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "1 MiB",
+          "1 GiB"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "max_temp_directory_size",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "0 bytes",
+          "1 GiB"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "max_vacuum_tasks",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "100",
+          "1",
+          "100000"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "old_implicit_casting",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "password",
+    "params": 
+      {
+        "type": "AFFIENUM",
+        "enum_values": [
+          "NULL",
+          "abc"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "preserve_insertion_order",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "produce_arrow_string_view",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "s3_use_ssl",
+    "params": 
+      {
+        "type": "AFFIBOOL"
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "secret_directory",
+    "params": 
+      {
+        "type": "AFFLENUM",
+        "enum_values": [
+          "./"
+        ]
+      }
+  },
+
+  {
+    "enabled": false,
+    "var_name": "storage_compatibility_version",
+    "params": 
+      {
+        "type": "AFFLENUM",
+        "enum_values": [
+          "v0.10.2"
+        ]
+      }
+  },
+
+  {
+    "enabled": true,
+    "var_name": "threads",
+    "params": 
+      {
+        "type": "AFFIINT",
+        "is_enum": false,
+        "is_range": true,
+        "range": {
+            "max": 100,
+            "min": 0
+        }
+      }
+  }
+]

@@ -1,0 +1,147 @@
+FROM ubuntu:20.04 AS fundamental
+MAINTAINER "XXX-Security-Universe"
+
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN chmod 777 /tmp
+
+RUN apt -y upgrade && \
+apt -y update && \
+apt -y install bison  && \
+apt -y install flex  && \
+apt -y install git  && \
+apt -y install make  && \
+apt -y install cmake  && \
+apt -y install build-essential  && \
+apt -y install clang && \
+apt -y install libreadline-dev  && \
+apt -y install zlib1g-dev  && \
+apt -y install gdb  && \
+apt -y install vim  && \
+apt -y install tmux  && \
+apt -y install python3 && \
+apt -y install python3-pip && \
+apt -y install screen && \
+apt -y install watch && \
+apt -y install unzip && \
+apt -y install wget && \
+apt -y install tcl && \
+apt -y install llvm && \
+apt -y install clang && \
+apt -y install clang-format && \
+apt install -y g++ && \
+apt install -y gcc && \
+apt install -y curl && \
+apt install -y ninja-build && \
+apt install -y libssl-dev && \
+apt install -y libarchive-zip-perl && \
+pip3 install gitpython
+
+RUN useradd -ms /bin/bash duckdb
+
+USER duckdb
+WORKDIR /home/duckdb
+RUN pip3 install libtmux
+
+# Build AFL.
+RUN git clone https://github.com/google/AFL.git
+
+WORKDIR /home/duckdb/AFL
+RUN sed -i  's/#define MAP_SIZE_POW2       16/#define MAP_SIZE_POW2       18/' config.h
+RUN make
+WORKDIR /home/duckdb/AFL/llvm_mode
+# ENV LLVM_CONFIG=llvm-config-6.0
+RUN make
+
+################################################################################
+# Build duckdb
+FROM fundamental AS duckdb3_build
+
+# Build duckdb3
+USER duckdb
+WORKDIR /home/duckdb
+RUN git clone https://github.com/duckdb/duckdb.git
+RUN cp -r duckdb duckdb_ori
+
+# Setup the Docker helper scripts
+USER root
+WORKDIR /home/duckdb
+COPY scripts /home/duckdb/scripts
+RUN chown -R duckdb:duckdb /home/duckdb/scripts
+
+## Build instrumented duckdb3
+USER duckdb
+WORKDIR /home/duckdb/duckdb
+RUN git checkout main && git show HEAD~2 --pretty=format:"%h" --no-patch &> ~/duckdb_version
+ENV CXX=/home/duckdb/AFL/afl-clang-fast++
+ENV CC=/home/duckdb/AFL/afl-clang-fast
+RUN python3 /home/duckdb/scripts/modify_duckdb_shell.py 
+RUN CFLAGS="-fsanitize=address -fsanitize=undefined" CXXFLAGS="-fsanitize=address -fsanitize=undefined" CPPFLAGS="-fsanitize=address -fsanitize=undefined" CORE_EXTENSIONS='autocomplete;httpfs;icu;parquet;json' GEN=ninja make debug
+
+# ## Build IR modified duckdb3
+# USER duckdb
+# WORKDIR /home/duckdb
+# RUN cp -r duckdb_ori duckdb_ir
+# WORKDIR /home/duckdb/duckdb_ir
+# RUN git checkout main
+# ENV CXX=g++
+# ENV CC=gcc
+# RUN pip3 install loguru && python3 /home/duckdb/scripts/setup_duckdb_ir.py /home/duckdb/scripts/assets /home/duckdb/duckdb_ir
+# RUN CORE_EXTENSIONS='autocomplete;httpfs;icu;parquet;json' GEN=ninja make debug
+
+ENV CXX=g++
+ENV CC=gcc
+
+################################################################################
+# Setup the rsg_cpp source code.
+FROM duckdb3_build AS rsg_cpp_build
+
+# grab the latest duckdb grammar
+USER duckdb
+WORKDIR /home/duckdb/duckdb/
+RUN python3 scripts/generate_grammar.py
+
+USER root
+COPY rsg_cpp /home/duckdb/rsg_cpp
+RUN chown -R duckdb:duckdb /home/duckdb/rsg_cpp
+
+USER duckdb
+WORKDIR /home/duckdb/rsg_cpp
+RUN cp /home/duckdb/duckdb/third_party/libpg_query/grammar/grammar.y.tmp ./scripts/assets/duckdb_grammar.y
+RUN make clean && make duckdb -j $(nproc)
+
+################################################################################
+# Setup the fuzzing context
+FROM rsg_cpp_build AS duckdb3_fuzzing
+USER duckdb
+WORKDIR /home/duckdb
+RUN mkdir -p fuzzing
+
+USER root
+WORKDIR /home/duckdb/fuzzing
+COPY fuzz_root /home/duckdb/fuzzing/fuzz_root
+
+USER duckdb
+WORKDIR /home/duckdb/rsg_cpp/scripts
+RUN python3 remove_action.py ./assets/duckdb_grammar.y
+
+USER root
+WORKDIR /home/duckdb/fuzzing/fuzz_root
+RUN cp /home/duckdb/rsg_cpp/scripts/assets/duckdb_grammar_modi.y /home/duckdb/fuzzing/fuzz_root/ && \
+    cp /home/duckdb/rsg_cpp/scripts/assets/ir_types_mapping.txt /home/duckdb/fuzzing/fuzz_root/
+RUN cp /home/duckdb/rsg_cpp/parserfuzz ./parserfuzz && mkdir -p outputs
+RUN mkdir -p /home/duckdb/fuzzing/Bug_Analysis
+RUN chown -R duckdb:duckdb /home/duckdb/fuzzing/
+
+USER duckdb
+WORKDIR /home/duckdb/rsg_cpp/scripts
+RUN python3 remove_action.py ./assets/duckdb_grammar.y && cp ./assets/duckdb_grammar_modi.y /home/duckdb/fuzzing/fuzz_root
+RUN cp /home/duckdb/duckdb/build/debug/duckdb /home/duckdb/fuzzing/fuzz_root/duckdb
+
+# Entry workdir.
+USER root
+WORKDIR /home/duckdb/fuzzing/fuzz_root
+
+COPY fuzzer_version /home/duckdb/fuzzer_version
+RUN chown duckdb:duckdb /home/duckdb/fuzzer_version
